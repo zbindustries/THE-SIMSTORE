@@ -1,0 +1,241 @@
+<!DOCTYPE html>﻿
+<html lang="en">﻿
+<head>﻿
+  <meta charset="UTF-8">﻿
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">﻿
+  <title>Sim Companies Marketplace</title>﻿
+  <style>﻿
+    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }﻿
+    .hidden { display: none; }﻿
+    button { padding: 10px 20px; margin: 10px; cursor: pointer; }﻿
+    input { padding: 8px; margin: 10px 0; width: 80%; }﻿
+    .notification { margin-top: 20px; padding: 10px; background-color: #e7f5e7; border: 1px solid green; }﻿
+  </style>﻿
+</head>﻿
+<body>﻿
+  <div id="welcome-screen">﻿
+    <h1>Welcome to Sim Companies Marketplace</h1>﻿
+    <button onclick="showPage('auth-screen')">Click to Continue</button>﻿
+  </div>﻿
+
+  <div id="auth-screen" class="hidden">﻿
+    <button onclick="showPage('register-screen')">Register</button>﻿
+    <button onclick="showPage('login-screen')">Login</button>﻿
+  </div>﻿
+
+  <div id="register-screen" class="hidden">﻿
+    <h2>Register</h2>﻿
+    <input id="reg-username" type="text" placeholder="Sim Companies Username" />﻿
+    <input id="reg-email" type="email" placeholder="Email ID" />﻿
+    <input id="reg-password" type="password" placeholder="Password" />﻿
+    <button onclick="register()">Register</button>﻿
+  </div>﻿
+
+  <div id="login-screen" class="hidden">﻿
+    <h2>Login</h2>﻿
+    <input id="login-username" type="text" placeholder="Username" />﻿
+    <input id="login-password" type="password" placeholder="Password" />﻿
+    <button onclick="login()">Login</button>﻿
+  </div>﻿
+
+  <div id="marketplace-screen" class="hidden">﻿
+    <h2>Marketplace</h2>﻿
+    <button onclick="showPage('sell-screen')">Sell</button>﻿
+    <button onclick="showPage('buy-screen')">Buy</button>﻿
+    <div id="notification-area"></div>﻿
+  </div>﻿
+
+  <div id="sell-screen" class="hidden">﻿
+    <h2>Sell a Product</h2>﻿
+    <input id="product-name" type="text" placeholder="Product Name" />﻿
+    <input id="product-quality" type="text" placeholder="Quality" />﻿
+    <input id="product-quantity" type="number" placeholder="Quantity" />﻿
+    <button onclick="sellProduct()">Sell</button>﻿
+  </div>﻿
+
+  <div id="buy-screen" class="hidden">﻿
+    <h2>Available Products</h2>﻿
+    <div id="product-list"></div>﻿
+  </div>﻿
+
+  <div id="seller-products-screen" class="hidden">﻿
+    <h2>Your Products</h2>﻿
+    <div id="seller-products-list"></div>﻿
+  </div>﻿
+
+  <script>﻿
+    const users = JSON.parse(localStorage.getItem('users')) || {};﻿
+    const products = JSON.parse(localStorage.getItem('products')) || [];﻿
+    const notifications = JSON.parse(localStorage.getItem('notifications')) || {};﻿
+    let loggedInUser = null;﻿
+
+    function showPage(pageId) {﻿
+      document.querySelectorAll('div').forEach(div => div.classList.add('hidden'));﻿
+      document.getElementById(pageId).classList.remove('hidden');﻿
+    }﻿
+
+    function register() {﻿
+      const username = document.getElementById('reg-username').value;﻿
+      const email = document.getElementById('reg-email').value;﻿
+      const password = document.getElementById('reg-password').value;﻿
+
+      if (users[username]) {﻿
+        alert('Username already exists!');﻿
+        return;﻿
+      }﻿
+
+      users[username] = { email, password };﻿
+      localStorage.setItem('users', JSON.stringify(users));﻿
+      alert('Registration Successful! Please Login.');﻿
+      showPage('login-screen');﻿
+    }﻿
+
+    function login() {﻿
+      const username = document.getElementById('login-username').value;﻿
+      const password = document.getElementById('login-password').value;﻿
+
+      if (!users[username] || users[username].password !== password) {﻿
+        alert('Invalid Username or Password!');﻿
+        return;﻿
+      }﻿
+
+      loggedInUser = username;﻿
+      alert(`Welcome, ${username}!`);﻿
+      showPage('marketplace-screen');﻿
+      updateNotifications();﻿
+    }﻿
+
+    function sellProduct() {﻿
+      const name = document.getElementById('product-name').value;﻿
+      const quality = document.getElementById('product-quality').value;﻿
+      const quantity = document.getElementById('product-quantity').value;﻿
+
+      if (!name || !quality || !quantity) {﻿
+        alert('Please fill all fields!');﻿
+        return;﻿
+      }﻿
+
+      products.push({ name, quality, quantity, seller: loggedInUser });﻿
+      localStorage.setItem('products', JSON.stringify(products));﻿
+      alert('Product listed for sale!');﻿
+      showPage('marketplace-screen');﻿
+      updateSellerProducts();﻿
+    }﻿
+
+    function displayProducts() {﻿
+      const productList = document.getElementById('product-list');﻿
+      productList.innerHTML = '';﻿
+
+      products.forEach((product, index) => {﻿
+        const productDiv = document.createElement('div');﻿
+        productDiv.innerHTML = `﻿
+          <p><b>Name:</b> ${product.name}</p>﻿
+          <p><b>Quality:</b> ${product.quality}</p>﻿
+          <p><b>Quantity:</b> ${product.quantity}</p>﻿
+          <p><b>Seller:</b> ${product.seller}</p>﻿
+          <button onclick="buyProduct(${index})">Buy</button>﻿
+          <hr>﻿
+        `;﻿
+        productList.appendChild(productDiv);﻿
+      });﻿
+    }﻿
+
+    function buyProduct(index) {﻿
+      const product = products[index];﻿
+      const quantity = prompt(`Enter quantity to buy (Available: ${product.quantity}):`);﻿
+
+      if (quantity > product.quantity) {﻿
+        alert('Insufficient quantity available!');﻿
+        return;﻿
+      }﻿
+
+      product.quantity -= quantity;﻿
+      if (product.quantity === 0) products.splice(index, 1);﻿
+
+      localStorage.setItem('products', JSON.stringify(products));﻿
+      alert('Order successful!');﻿
+
+      // Notification for the buyer and seller﻿
+      notifyBuyer(product, quantity);﻿
+      notifySeller(product, quantity);﻿
+
+      displayProducts();﻿
+    }﻿
+
+    function notifyBuyer(product, quantity) {﻿
+      const buyerNotification = `Your order for ${quantity} of ${product.name} has been confirmed!`;﻿
+      if (!notifications[loggedInUser]) {﻿
+        notifications[loggedInUser] = [];﻿
+      }﻿
+      notifications[loggedInUser].push(buyerNotification);﻿
+      localStorage.setItem('notifications', JSON.stringify(notifications));﻿
+
+      updateNotifications();﻿
+    }﻿
+
+    function notifySeller(product, quantity) {﻿
+      const sellerNotification = `${loggedInUser} has purchased ${quantity} of your product: ${product.name}.`;﻿
+      if (!notifications[product.seller]) {﻿
+        notifications[product.seller] = [];﻿
+      }﻿
+      notifications[product.seller].push(sellerNotification);﻿
+      localStorage.setItem('notifications', JSON.stringify(notifications));﻿
+    }﻿
+
+    function updateNotifications() {﻿
+      const notificationArea = document.getElementById('notification-area');﻿
+      notificationArea.innerHTML = '';﻿
+
+      if (notifications[loggedInUser]) {﻿
+        notifications[loggedInUser].forEach(notification => {﻿
+          const notificationDiv = document.createElement('div');﻿
+          notificationDiv.classList.add('notification');﻿
+          notificationDiv.textContent = notification;﻿
+          notificationArea.appendChild(notificationDiv);﻿
+        });﻿
+      }﻿
+    }﻿
+
+    function updateSellerProducts() {﻿
+      const sellerProductsList = document.getElementById('seller-products-list');﻿
+      sellerProductsList.innerHTML = '';﻿
+
+      products.filter(product => product.seller === loggedInUser).forEach((product, index) => {﻿
+        const productDiv = document.createElement('div');﻿
+        productDiv.innerHTML = `﻿
+          <p><b>Name:</b> ${product.name}</p>﻿
+          <p><b>Quality:</b> ${product.quality}</p>﻿
+          <p><b>Quantity:</b> ${product.quantity}</p>﻿
+          <button onclick="editProduct(${index})">Edit</button>﻿
+          <button onclick="removeProduct(${index})">Remove</button>﻿
+          <hr>﻿
+        `;﻿
+        sellerProductsList.appendChild(productDiv);﻿
+      });﻿
+    }﻿
+
+    function editProduct(index) {﻿
+      const product = products[index];﻿
+      const newName = prompt('Enter new product name:', product.name);﻿
+      const newQuality = prompt('Enter new product quality:', product.quality);﻿
+      const newQuantity = prompt('Enter new product quantity:', product.quantity);﻿
+
+      if (newName) product.name = newName;﻿
+      if (newQuality) product.quality = newQuality;﻿
+      if (newQuantity) product.quantity = newQuantity;﻿
+
+      localStorage.setItem('products', JSON.stringify(products));﻿
+      updateSellerProducts();﻿
+    }﻿
+
+    function removeProduct(index) {﻿
+      products.splice(index, 1);﻿
+      localStorage.setItem('products', JSON.stringify(products));﻿
+      updateSellerProducts();﻿
+    }﻿
+
+    // Initialize the marketplace and show available products﻿
+    displayProducts();﻿
+  </script>﻿
+</body>﻿
+</html>
